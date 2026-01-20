@@ -1,8 +1,24 @@
-# My Page
-This is my first GitHub page using Markdown.
+---
+layout: page
+title: Home
+---
 
-## This is a secondary title
-Hello, text under secondary title.
+# Yadanar May Oo
 
-### This is a tertiary title
-Hello, text inside tertiary title.
+Greetings, I am a **BEng in Information Technology graduate**, currently pursuing a **Master’s in Data Science at the University of Sheffield**.
+
+I have experience in:
+- **Data analysis**
+- **Machine learning**
+- **Python and R**
+
+My main interests lie in applying **data-driven techniques** to:
+- Natural Language Processing (NLP)
+- Software Engineering
+
+---
+
+## Projects
+
+### 📌 [Project Title](project-1.html)
+A brief description of the project and what it focuses on.
