@@ -20,7 +20,6 @@ The following R packages are required:
 - `plotly`
 - `tidyverse`
 - `readODS`
-- `janitor`
 
 ## Guide to code running
 
