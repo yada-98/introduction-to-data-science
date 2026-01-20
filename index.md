@@ -3,9 +3,9 @@ layout: page
 title: Home
 ---
 
-# Yadanar May Oo
+# About Me
 
-Greetings, I am a **BEng in Information Technology graduate**, currently pursuing a **Master’s in Data Science at the University of Sheffield**.
+Greetings, I am Yadanar May Oo, a **BEng in Information Technology graduate**, currently pursuing a **Master’s in Data Science at the University of Sheffield**.
 
 I have experience in:
 - **Data analysis**
