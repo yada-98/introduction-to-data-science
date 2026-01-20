@@ -6,6 +6,15 @@ You can find the link to the code repository [here](https://github.com/yada-98/i
 
 ## Datasets used
 
+## Requirements
+
+- R and RStudio (available at https://posit.co/download/rstudio-desktop/)
+The following R packages are required:
+- `plotly`
+- `tidyverse`
+- `readODS`
+- `janitor`
+
 ## Guide to code running
 
 - The project only involves a single R file in the repository [FinalRAssignment.R](FinalRAssignment.R).
