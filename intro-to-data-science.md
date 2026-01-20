@@ -26,6 +26,5 @@ The following R packages are required:
 
 - The project only involves a single R file in the repository [FinalRAssignment.R](FinalRAssignment.R).
 - After downloading the datasets from the source, please put them in the same directory as the R file.
-- Try to run each block of R code from start to bottom to reproduce the analysis and results presented in the report.
-
+- Explore the script from start to end in RStudio by executing each code block sequentially (e.g. using Shift + Enter) to reproduce the analysis and results presented in the report.
 
