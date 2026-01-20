@@ -6,9 +6,16 @@ You can find the link to the code repository [here](https://github.com/yada-98/i
 
 ## Datasets used
 
+The source of the data is Office of Rail and Road, from exploration of [data table catalogue](https://dataportal.orr.gov.uk/data-table-catalogue/).
+
+Two datasets are studied under this project, namely
+- Passenger rail service complaints - Table 4113 - Complaints per 100,000 journeys by operator
+- TOC key statistics - Table 2200 - All operators
+
 ## Requirements
 
 - R and RStudio (available at https://posit.co/download/rstudio-desktop/)
+
 The following R packages are required:
 - `plotly`
 - `tidyverse`
