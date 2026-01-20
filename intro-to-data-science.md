@@ -14,6 +14,8 @@ Two datasets are studied under this project, namely
 
 ## Summary of Methodology
 
+Data was collected from UK ORR, after which is cleaned and explored using EDA. This was followed by clustering analysis of operators and other statistical modelling to identify patterns in service performance.
+
 ![Methodology Flow Chart](methodology.png)
 
 ## Requirements
