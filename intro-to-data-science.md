@@ -12,6 +12,10 @@ Two datasets are studied under this project, namely
 - Passenger rail service complaints - Table 4113 - Complaints per 100,000 journeys by operator
 - TOC key statistics - Table 2200 - All operators
 
+## Summary of Methodology
+
+![Methodology Flow Chart](methodology.png)
+
 ## Requirements
 
 - R and RStudio (available at [https://posit.co/download/rstudio-desktop/](https://posit.co/download/rstudio-desktop/))
