@@ -16,7 +16,7 @@ My main interests lie in applying **data-driven techniques** to:
 - Natural Language Processing (NLP)
 - Software Engineering
 
-Link to my GitHub profile [https://github.com/yada-98]
+You can find my GitHub profile [here](https://github.com/yada-98).
 
 ---
 
