@@ -20,5 +20,5 @@ My main interests lie in applying **data-driven techniques** to:
 
 ## Projects
 
-### 📌 [Project Title](project-1.html)
-A brief description of the project and what it focuses on.
+### 📌 [Introduction to Data Science (IJC437)](intro-to-data-science.html)
+A data science project implementing the complete analytical workflow on UK rail data, including preprocessing, analysis, and result interpretation.
