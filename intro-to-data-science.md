@@ -14,7 +14,7 @@ Two datasets are studied under this project, namely
 
 ## Requirements
 
-- R and RStudio (available at https://posit.co/download/rstudio-desktop/)
+- R and RStudio (available at [https://posit.co/download/rstudio-desktop/](https://posit.co/download/rstudio-desktop/))
 
 The following R packages are required:
 - `plotly`
