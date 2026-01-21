@@ -1,7 +1,8 @@
 library(tidyverse)
 library(readODS)
-library(janitor)
+library(plotly)
 
+install.packages("plotly")
 #Load data into R
 
 filePath <- "4113-complaint-rate-by-operator.ods"
@@ -10,8 +11,13 @@ df_complaints <- read_ods(
   sheet = 3,   
   skip  = 5    
 )
+#Data Cleaning for complaint rate dataset
+
+# To remove quartely data, use only annual data only
 
 df_annual <- df_complaints [(0:18),]
+
+# To remove covid period Apr 2020-Mar 2021, Apr 2021-Mar2022
 
 df_uncleaned_pre_post <- df_annual |>
   filter(`Time period` %in% c(
@@ -23,19 +29,26 @@ df_uncleaned_pre_post <- df_annual |>
     "Apr 2024 to Mar 2025 [p]"
   ))
 
+# To focus on recent patterns, only use 2023-2024
 
 Complaints <- df_annual %>% 
   filter(`Time period` == "Apr 2023 to Mar 2024 [b] [p] [r]" )
+
+# To remove z value (Data not applicable)
 
 Complaints <- Complaints %>%
   select(
     where(~ !any(. == "[z]", na.rm = TRUE))
   )
   
+# To remove annotation in Time Period column
+
 Complaints<-Complaints %>%
   mutate(
     `Time period` = str_remove_all(`Time period`, "\\s*\\[.*?\\]")
   )
+
+#To change the table format, from wide to long format, new column become operator
 
 RateOfComplaint <- Complaints |>
   pivot_longer(
@@ -46,56 +59,65 @@ RateOfComplaint <- Complaints |>
 
 RateOfComplaint <- select(RateOfComplaint, Operator, TotalComplaintRate)
 
+#To remove annotation in operator column
 RateOfComplaint <- RateOfComplaint %>%
   mutate(
     Operator = str_remove(Operator, "\\s*\\(.*\\)") %>%  
       str_remove("\\s*\\[.*\\]") %>%          
       str_trim()
   )
+
+# To change the numeric for total complaint rate column which is character
+
 RateOfComplaint$TotalComplaintRate <- as.numeric(RateOfComplaint$TotalComplaintRate)
 
-DataPlot <- RateOfComplaint %>%
+# To identify highest and lowest complaint for the operators 
+
+MaxComplaintPlot <- RateOfComplaint %>%
   slice_max(TotalComplaintRate, n = 5)
 
-DataPlot2 <- RateOfComplaint %>%
+MinComplaintPlot <- RateOfComplaint %>%
   slice_min(TotalComplaintRate, n = 5)
 
+#To visualise the pattern, it can easy to identify the pattern
+# Complaint rate is continuous, So, col chart is more suitable than bar chart
 
-ggplot(DataPlot, aes(x = reorder(Operator, TotalComplaintRate),
+ggplot(MaxComplaintPlot, aes(x = reorder(Operator, TotalComplaintRate),
                      y = TotalComplaintRate, fill = Operator)) +
   geom_col(width = 0.5) +
   coord_flip() +
   scale_fill_brewer(palette = "Set1") +
   labs(x = "Operator", y = "Complaint Rate per 100,000 journeys", 
-       title = "Five Operators with the Highest Complaint Rates (Apr 2023–Mar 2024)") +
+       title = "Five Operators with the Highest Complaint Rates (Apr 2023–Mar 2024)",
+       caption = "ORR Dataset") +
   theme(
     plot.title   = element_text(size = 15, face = "bold"),
     axis.title   = element_text(size = 14),
     axis.text    = element_text(size = 11),
     legend.title = element_text(size = 13),
     legend.text  = element_text(size = 10),
-    plot.caption = element_text(size = 15)
+    plot.caption = element_text(size = 10)
   )
 
-ggplot(DataPlot2, aes(x = reorder(Operator, TotalComplaintRate),
+ggplot(MinComplaintPlot, aes(x = reorder(Operator, TotalComplaintRate),
                      y = TotalComplaintRate, fill = Operator)) +
   geom_col(width = 0.5) +
   coord_flip() +
   scale_fill_brewer(palette = "Set2") +
   labs(x = "Operator", y = "Complaint Rate per 100,000 journeys", 
-       title = "Five Operators with the Lowest Complaint Rates (Apr 2023–Mar 2024)") +
+       title = "Five Operators with the Lowest Complaint Rates (Apr 2023–Mar 2024)",
+       caption = "ORR Dataset") +
   theme(
     plot.title   = element_text(size = 15, face = "bold"),
     axis.title   = element_text(size = 14),
     axis.text    = element_text(size = 11),
     legend.title = element_text(size = 13),
     legend.text  = element_text(size = 10),
-    plot.caption = element_text(size = 15)
+    plot.caption = element_text(size = 10)
   )
 
 
-
-# For the another data
+# For the another data (Annual Total Delay)
 
 #To load data into R
 x <- read_ods(
@@ -111,16 +133,22 @@ i <- which(x[[1]] == "Table 2200d: Delay minutes, annual data")
 # Extract table (header + data)
 tbl <- x[(i + 1):(i + 20), ]  
 
-# Clean
+# Cleaning 
 tbl <- tbl[, colSums(!is.na(tbl)) > 0]
 colnames(tbl) <- tbl[1, ]
 DelayMinutesAnnual <- tbl[-1, ]
 
 View(DelayMinutesAnnual)
 
+#To remove the NA rows 
+
 Delay <- DelayMinutesAnnual[(1:15),]
 
+#Use only 2023-2024 data, identiy recent patterns
+
 Delay <- filter(Delay, `Time period` == "Apr 2023 to Mar 2024 [r]")
+
+# For delay minutes, have three measurements, aggregate these measurement
 
 SumedDelay <- Delay %>%
   mutate(
@@ -134,13 +162,15 @@ SumedDelay <- SumedDelay %>%
   select(-`Time period`, -Measure) %>%
   summarise(across(everything(), sum, na.rm = TRUE))
 
+
 CleanedDelay <- SumedDelay  %>%
   pivot_longer(
     everything(),
     names_to = "Operator",
     values_to = "TotalDelayMinutes"
   )
-CleanedDelay <- CleanedDelay %>%
+
+TotalDelay2023 <- CleanedDelay %>%
   mutate(
     Operator = str_remove(Operator, "\\s*\\(.*\\)") %>%  
       str_remove("\\s*\\[.*\\]") %>%          
@@ -148,59 +178,20 @@ CleanedDelay <- CleanedDelay %>%
   )
 
 #To plot the data
-TestPlotData <- CleanedDelay %>%
+TestDelayData <- TotalDelay2023 %>%
   slice_max(TotalDelayMinutes, n = 5)
 
-TestPlotData2 <- CleanedDelay %>%
+TestDelayData2 <- TotalDelay2023 %>%
   slice_min(TotalDelayMinutes, n = 5)
-
-ggplot(TestPlotData, aes(x = reorder(Operator, TotalDelayMinutes),
-             y = TotalDelayMinutes)) +
-  geom_col() +
-  coord_flip() +
-  scale_y_continuous(labels = function(x) format(x, big.mark = ","))+
-  labs(x = "Operator", y = "Total delay minutes", title = "Top operators by total delay minutes") +
-  theme_minimal()
 
 
 #Combine two dataset
+#Used inner_join to match both two dataframe
 
-CombinedData <- inner_join(CleanedDelay, RateOfComplaint, by = "Operator")
+CombinedData <- inner_join(RateOfComplaint,TotalDelay2023, by = "Operator")
 
-Combine <- inner_join(RateOfComplaintC, CancellationPercent, by = "Operator")
 
-DelayTop5 <- CombinedData %>%
-  slice_max(TotalDelayMinutes, n = 5)
-
-ggplot(DelayTop5,
-       aes(x = TotalDelayMinutes,
-           y = TotalComplaintRate,
-           fill = Operator)) +
-  geom_point(shape = 21, size = 4, color = "black") +
-  scale_x_continuous(labels = function(x) format(x, big.mark = ",")) +
-  labs(
-    x = "Total Delay Minutes",
-    y = "Total Complaint Rate",
-    title = "Top 5 Operators: Delay vs Complaint Rate",
-    fill = "Operator"
-  ) +
-  theme_minimal()
-
-#Visulise for all data
-
-ggplot(CombinedData,
-       aes(x = TotalDelayMinutes,
-           y = TotalComplaintRate,
-           fill = Operator)) +
-  geom_point(shape = 21, size = 4, color = "black") +
-  scale_x_continuous(labels = function(x) format(x, big.mark = ",")) +
-  labs(
-    x = "Total Delay Minutes",
-    y = "Total Complaint Rate",
-    title = "Delay vs Complaint Rate by Operator"
-  ) +
-  theme_minimal() +
-  guides(fill = "none")
+#Visulise combined dataset to identify the pattern
 
 
 ggplot(CombinedData,
@@ -216,7 +207,8 @@ ggplot(CombinedData,
     x = "Total Delay Minutes",
     y = "Complaint Rate per 100,000 journeys",
     color = "Complaint Rate",
-    title = "Delays and Complaint Rates by Train Operator"
+    title = "Delays and Complaint Rates by Train Operator",
+    caption = "ORR Dataset"
   ) +
   theme(
     plot.title   = element_text(size = 15, face = "bold"),
@@ -224,10 +216,10 @@ ggplot(CombinedData,
     axis.text    = element_text(size = 11),
     legend.title = element_text(size = 12),
     legend.text  = element_text(size = 10),
-    plot.caption = element_text(size = 15)
+    plot.caption = element_text(size = 10)
   )
 
-
+# I found the groupping pattern, So, I tested clustering only two varaibles
 
 #Use Clustering Method
 
@@ -236,21 +228,22 @@ ggplot(CombinedData,
 ClusterData <- CombinedData %>%
   select(TotalDelayMinutes, TotalComplaintRate)
 
-#Scaling (Delay and Complaints are different measurement)
+#Scaling (Delay and Complaints are different scale)
+# Using z-score normalisation
 
 ScaledData <- scale(ClusterData)
 
+#Used k-means clustering algorithm
+
 set.seed(123)
+#Based on the above pattern, I tested with 4 centroid.
 
 KmeansData <- kmeans(ScaledData, centers = 4, nstart = 25)
 
+#Convert the cluster numbers into categories 
+
 CombinedData$Cluster <- factor(KmeansData$cluster)
 
-aggregate(
-  CombinedData[, c("TotalDelayMinutes", "TotalComplaintRate")],
-  by = list(Cluster = CombinedData$Cluster),
-  mean
-)
 
 ggplot(CombinedData,
        aes(x = TotalDelayMinutes,
@@ -259,7 +252,7 @@ ggplot(CombinedData,
   geom_point(size = 4) +
   scale_x_continuous(labels = function(x) format(x, big.mark = ",")) +
   labs(
-    title = "Operator Clusters Based on Delay and Complaint Rate",
+    title = "Groupping the Operators Based on Delay and Complaint Rate",
     x = "Total Delay Minutes",
     y = "Total Complaint Rate"
   ) +
@@ -274,12 +267,14 @@ x_cancel <- read_ods(
   col_names = FALSE
 )
 
-# Find start of Table 2200c: Punctuality and reliability, annual data
+# To Find start of Table 2200c: Punctuality and reliability, annual data
+
 j <- which(x_cancel[[1]] ==
              "Table 2200c: Punctuality and reliability, annual data")
 
 # Extract table (header + data)
-tbl_cancel <- x_cancel[(j + 1):(j + 20), ]   # increase 20 if needed
+
+tbl_cancel <- x_cancel[(j + 1):(j + 20), ]
 
 # Clean
 tbl_cancel <- tbl_cancel[, colSums(!is.na(tbl_cancel)) > 0]
@@ -287,13 +282,11 @@ colnames(tbl_cancel) <- tbl_cancel[1, ]
 
 CancellationAnnual <- tbl_cancel[-1, ]
 
-# View result
-View(CancellationAnnual)
-
 CancellationAnnual <- CancellationAnnual[(1:5),]
 
 CancellationAnnual <- filter(CancellationAnnual, `Time period` == "Apr 2023 to Mar 2024")
 
+#To convert the format wider to longer
 
 CancellationPercent <- CancellationAnnual %>%
   pivot_longer(
@@ -303,35 +296,28 @@ CancellationPercent <- CancellationAnnual %>%
   ) %>%
   mutate(TotalCancelPercent = as.numeric(TotalCancelPercent))
 
-CancellationPercent <- select(CancellationPercent, Operator, TotalCancelPercent)
+# To combined the data, I want only Operator and TotaCancel Percent)
 
-CancellationPercent <- CancellationPercent %>%
+CancellationPercent23 <- select(CancellationPercent, Operator, TotalCancelPercent)
+
+CancellationPercent23 <- CancellationPercent23 %>%
   mutate(
     Operator = str_remove(Operator, "\\s*\\(.*\\)") %>%  
       str_remove("\\s*\\[.*\\]") %>%          
       str_trim()
   )
 
-VisualCancel <- CancellationPercent %>%
+VisualCancel <- CancellationPercent23 %>%
   slice_max(TotalCancelPercent, n=5)
 
-VisualCancel2 <- CancellationPercent %>%
+VisualCancel2 <- CancellationPercent23 %>%
   slice_min(TotalCancelPercent, n=5)
-
-ggplot(VisualCancel, aes(x = reorder(Operator, TotalCancelPercent),
-                         y = TotalCancelPercent, fill = Operator)) +
-  geom_col() +
-  scale_y_continuous(labels = function(x) format(x, big.mark = ","))+
-  labs(x = "Operator", y = "Cancel Percentage", title = "Top operators by Cancellation Percentage") +
-  theme_minimal()
-
-
 
 #Combining three Dataset, Delay + Complaint + Cancellation
 
 CombinedDataframe <- RateOfComplaint %>%
-  inner_join(CleanedDelay, by = "Operator") %>%
-  inner_join(CancellationPercent, by = "Operator")
+  inner_join(TotalDelay2023, by = "Operator") %>%
+  inner_join(CancellationPercent23, by = "Operator")
 
 ggplot(CombinedDataframe,
        aes(x = TotalDelayMinutes,
@@ -351,7 +337,8 @@ ggplot(CombinedDataframe,
   labs(
     x = "Total Delay Minutes",
     y = "Complaint Rate per 100,000 journeys",
-    title = "Complaint Rate, Delay Minutes and Cancellations Percent By Operator"
+    title = "Complaint Rate, Delay Minutes and Cancellations Percent By Operator",
+    caption = "ORR Dataset"
   ) +
   theme(
     plot.title   = element_text(size = 15, face = "bold"),
@@ -359,7 +346,7 @@ ggplot(CombinedDataframe,
     axis.text    = element_text(size = 11),
     legend.title = element_text(size = 12),
     legend.text  = element_text(size = 10),
-    plot.caption = element_text(size = 15)
+    plot.caption = element_text(size = 10)
   )
 
 
@@ -367,12 +354,14 @@ ggplot(CombinedDataframe,
 #Use Clustering Method,
 #Data Preparation
 
-ClusterData2 <- CombinedDataframe %>%
+ClusterData2023 <- CombinedDataframe %>%
   select(TotalCancelPercent,TotalDelayMinutes, TotalComplaintRate)
 
 #Scaling the variables, measurement are different
 
-ScaledVariables <- scale(ClusterData2)
+ScaledVariables <- scale(ClusterData2023)
+
+#To get the same clusters every time, set.seed (123) and set,seed
 
 set.seed(123)
 
@@ -384,9 +373,9 @@ CombinedDataframe$Cluster <- factor(
   labels = c("Group 1", "Group 2", "Group 3", "Group 4")
 )
 
-
-install.packages("plotly")   
-library(plotly)
+#To Visualise the cluster dataset
+#For three dimensional visualisation, I used plot_ly, can move easily 
+#and can check easily the cluster and I want to use hover, so, decided to use plot_ly instead of ggplot
 
 plot_ly(
   CombinedDataframe,
@@ -418,27 +407,35 @@ plot_ly(
     )
   )
 
+#To compare the the consistency of operators' characteristics
 #For 2024 to 2025 
 
 filepath_2024 <- "4113-complaint-rate-by-operator.ods"
 Complaint2024 <- read_ods(
   path  = filepath_2024,
-  sheet = 3,   # third sheet (1-based index)
-  skip  = 5    # skip first 5 rows
+  sheet = 3,   
+  skip  = 5 
 )
 
 Complaint2024 <- Complaint2024 [(0:18),]
 
+# To remove the annotation from Time Period column
+
 Complaint2024 <- Complaint2024 %>%
   mutate(`Time period` = str_trim(str_remove_all(`Time period`, "\\[.*?\\]")))
 
+#only use 2024-2025
 Complaint2024 <- Complaint2024%>%
   filter(`Time period` == "Apr 2024 to Mar 2025")
+
+#Remove z (data not applicable)
 
 Complaint2024 <- Complaint2024 %>%
   select(
     where(~ !any(. == "[z]", na.rm = TRUE))
   )
+
+#convert the format, wider to longer
 
 Complaint2024 <- Complaint2024 %>%
   pivot_longer(
@@ -447,9 +444,11 @@ Complaint2024 <- Complaint2024 %>%
     values_to = "TotalComplaintRate"
   ) 
 
+# want to remove Time period column 
 Complaint2024 <- select(Complaint2024, "Operator", "TotalComplaintRate") %>%
   mutate(TotalComplaintRate = as.numeric(TotalComplaintRate))
 
+# To remove annotation from Opeartor column
 Complaint2024 <- Complaint2024 %>%
   mutate(
     Operator = str_remove(Operator, "\\s*\\(.*\\)") %>%  
@@ -457,47 +456,17 @@ Complaint2024 <- Complaint2024 %>%
       str_trim()
   )
 
-MaxPlot2024 <- Complaint2024 %>%
+#Summary the data for 2024-25, which are highest or lowest, same with last year?
+
+HighComplaintPlot2024 <- Complaint2024 %>%
   slice_max(TotalComplaintRate, n = 5)
 
-MinPlot2024 <- Complaint2024 %>%
+LowComplaintPlot2024 <- Complaint2024 %>%
   slice_min (TotalComplaintRate, n = 5)
 
-ggplot(MaxPlot2024, aes(x = reorder(Operator, TotalComplaintRate),
-                     y = TotalComplaintRate, fill = Operator)) +
-  geom_col(width = 0.5) +
-  coord_flip() +
-  scale_fill_brewer(palette = "Set2") +
-  labs(x = "Operator", y = "Complaint Rate per 100,000 journeys", 
-       title = "Five Operators with the Highest Complaint Rates (Apr 2024–Mar 2025)") +
-  theme(
-    plot.title   = element_text(size = 15, face = "bold"),
-    axis.title   = element_text(size = 14),
-    axis.text    = element_text(size = 11),
-    legend.title = element_text(size = 13),
-    legend.text  = element_text(size = 10),
-    plot.caption = element_text(size = 15)
-  )
 
-ggplot(MinPlot2024, aes(x = reorder(Operator, TotalComplaintRate),
-                        y = TotalComplaintRate, fill = Operator)) +
-  geom_col(width = 0.5) +
-  coord_flip() +
-  scale_fill_brewer(palette = "Set2") +
-  scale_y_continuous(labels = scales::label_number(accuracy = 1)) +
-  labs(x = "Operator", y = "Complaint Rate per 100,000 journeys", 
-       title = "Five Operators with the Lowest Complaint Rates (Apr 2024–Mar 2025)") +
-  theme(
-    plot.title   = element_text(size = 15, face = "bold"),
-    axis.title   = element_text(size = 14),
-    axis.text    = element_text(size = 11),
-    legend.title = element_text(size = 13),
-    legend.text  = element_text(size = 10),
-    plot.caption = element_text(size = 15)
-  )
+#To load data into R (TotalDelayAnualData)
 
-
-#To load data into R
 x2024 <- read_ods(
   "table-2200_key_statistics_by_operator.ods",
   sheet = 3,
@@ -509,7 +478,7 @@ x2024 <- read_ods(
 z <- which(x2024[[1]] == "Table 2200d: Delay minutes, annual data")
 
 # Extract table (header + data)
-tbl2024 <- x2024[(z + 1):(z + 20), ]   # increase 20 if needed
+tbl2024 <- x2024[(z + 1):(z + 20), ]
 
 # Clean
 tbl2024 <- tbl2024[, colSums(!is.na(tbl2024)) > 0]
@@ -571,7 +540,9 @@ colnames(tbl_cancel2024) <- tbl_cancel2024[1, ]
 
 Cancel2024 <- tbl_cancel2024[-1, ]
 
+
 Cancel2024 <- Cancel2024[(1:5),]
+
 Cancel2024 <- filter(Cancel2024, `Time period` == "Apr 2024 to Mar 2025" )
 
 CancelPercent2024 <- Cancel2024 %>%
@@ -590,8 +561,12 @@ CancelPercent2024 <- CancelPercent2024 %>%
       str_remove("\\s*\\[.*\\]") %>%          
       str_trim()
   )
-DataCancelPlot <- CancelPercent2024 %>%
+
+MinDataCancelPlot2024 <- CancelPercent2024 %>%
   slice_min(TotalCancelPercent, n = 5)
+
+MaxDataCancelPlot2024 <- CancelPercent2024 %>%
+  slice_max(TotalCancelPercent, n = 5)
 
 
 CombinedDataframe2024 <- Complaint2024 %>%
@@ -610,6 +585,9 @@ ScaledVariables2024 <- scale(ClusterData2024)
 
 set.seed(123)
 
+# For this, I selected similarly centroid 4, but it is not enough seperation and
+#homogeneity
+
 ClusteredResult2024 <- kmeans(ScaledVariables2024, centers = 3, nstart = 25)
 
 CombinedDataframe2024$Cluster <- factor(
@@ -618,9 +596,7 @@ CombinedDataframe2024$Cluster <- factor(
   labels = c("Group 1", "Group 2", "Group 3")
 )
 
-
-install.packages("plotly")   
-library(plotly)
+#Similarly I used 3D plot
 
 plot_ly(
   CombinedDataframe2024,
@@ -652,25 +628,24 @@ plot_ly(
     )
   )
 
-
-# Spearman correlation
-
-FindCorrelation <- cor.test(CombinedDataframe2024$TotalComplaintRate,
-                       CombinedDataframe2024$TotalCancelPercent,
-                       method = "spearman")
-
 #To find the correlation
+# For the accuracy of correlation I used more observations
+#So, I prepared the data again
 
 #For Camplaint Dataframe
 
 Newfilepath <- "4113-complaint-rate-by-operator.ods"
 NewComplaint <- read_ods(
   path  = Newfilepath,
-  sheet = 3,   # third sheet (1-based index)
-  skip  = 5    # skip first 5 rows
+  sheet = 3,  # only need third sheet
+  skip  = 5    
 )
+# Used annual data, removing unused row
 
 NewComplaint <- NewComplaint [(0:18),]
+
+# Use three years, 2022-23,23-24,24-25, remove other rows
+
 NewComplaint <- NewComplaint [(16:18),]
 
 NewComplaint <- NewComplaint %>%
@@ -703,13 +678,14 @@ NewComplaint <- NewComplaint %>%
 
 NewDelay <- tbl [-1,]
 
-
 NewDelay <- NewDelay[(7:15),]
 
 NewDelay <- NewDelay %>%
   mutate(
     `Time period` = str_remove_all(`Time period`, "\\s*\\[.*?\\]")
   )
+
+#Aggregate three measurement
 
 SumedNewDelay <- NewDelay %>%
   group_by(`Time period`) %>%
@@ -742,6 +718,8 @@ NewCancel <- NewCancel[(1:5),]
 
 NewCancel <- NewCancel[(3:5),]
 
+#Similar way with the above code, convert table format, wider to longer
+
 NewCancel<- NewCancel %>%
   pivot_longer(
     cols = -c (`Time period`, Measure),
@@ -765,18 +743,53 @@ NewDataFrame <- NewComplaint %>%
   inner_join(DelayDataframe, by = c("Time period","Operator")) %>%
   inner_join(NewCancel, by = c("Time period","Operator"))
 
-#Check Relationship y and x
+#Check Relationship delay and cancel, linerar or not, to check which correlation method need to use
+
 ggplot(NewDataFrame,
        aes(x = TotalDelayMinutes,
            y = TotalCancelPercent)) +
   geom_point(alpha = 0.6) +
   geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    x = "Total Delay Minutes",
+    y = "Total Cancel Percent",
+    title = "The Correlation of Delay Minutes and Cancel Percent",
+    caption = "ORR Dataset"
+  )+
+  theme_minimal()
+
+ggplot(NewDataFrame,
+       aes(x = TotalCancelPercent,
+           y = TotalComplaintRate)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    x = "Total Cancel Percent",
+    y = "Complaint Rate per 100,000 journeys",
+    title = "The Correlation of Complaint Rate and Cancel Percent",
+    caption = "ORR Dataset"
+  )+
+  theme_minimal()
+
+ggplot(NewDataFrame,
+       aes(x = TotalDelayMinutes,
+           y = TotalComplaintRate)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE, color = "red") +
+  labs(
+    x = "Total Delay Minutes",
+    y = "Complaint Rate per 100,000 journeys",
+    title = "The Correlation of Complaint Rate and Delay Minutes",
+    caption = "ORR Dataset"
+  )+
   theme_minimal()
 
 
 #No linear, have outliers data
 
 #Finding Correlation (Use Spearman)
+
+#For the Complaint and Cancel
 
 RelationResult <- cor.test(NewDataFrame$TotalComplaintRate,
                            NewDataFrame$TotalCancelPercent,
@@ -805,16 +818,18 @@ DelayAndCancel
 
 
 
+# The relation of variables are not linear.
+#used Mulitiple linear regression as an exploratory tool,
+#To indentify how much the variance of delay and cancel in complaint
+
 #Finding linear regression
 
-LinearCheck <- lm(TotalComplaintRate ~ TotalDelayMinutes + TotalCancelPercent,
+# Used Total Complaint as an outcome, delay and cancel are features
+
+LinearResults <- lm(TotalComplaintRate ~ TotalDelayMinutes + TotalCancelPercent,
                   data = NewDataFrame)
 
-summary(LinearCheck)
-
-par (mfrow = c(2,2))
-plot(LinearCheck)
-par(mfrow = c(1,1))
+summary(LinearResults)
 
 
 
