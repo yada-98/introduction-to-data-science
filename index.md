@@ -24,3 +24,7 @@ You can find my GitHub profile [here](https://github.com/yada-98).
 
 ### 📌 [Introduction to Data Science (IJC437)](intro-to-data-science.html)
 A data science project implementing the complete analytical workflow on UK rail data, including preprocessing, analysis, and result interpretation.
+
+### 📌 [Data Visualisation (IJC445)](intro-to-data-science.html)
+This project explores inequality and variation in the performance of UK rail operators across time. 
+
